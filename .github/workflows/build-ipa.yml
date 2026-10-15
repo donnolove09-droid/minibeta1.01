@@ -1,0 +1,50 @@
+name: Build MINICRAFT SURVIVAL IPA (chua ky)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Cai thu vien
+        run: npm install
+      - name: Chuan bi web (dung thu vien noi bo, khong can mang)
+        run: |
+          mkdir -p www/lib
+          cp node_modules/three/build/three.min.js www/lib/three.min.js
+          cp node_modules/three/examples/js/loaders/GLTFLoader.js www/lib/GLTFLoader.js
+          cp node_modules/pako/dist/pako.min.js www/lib/pako.min.js
+          sed -e 's#https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js#lib/three.min.js#' \
+              -e 's#https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js#lib/GLTFLoader.js#' \
+              -e 's#https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js#lib/pako.min.js#' \
+              -e '/fonts.googleapis.com/d' game/index.html > www/index.html
+          grep -c "lib/three.min.js" www/index.html
+      - name: Tao du an iOS
+        run: |
+          npx cap add ios
+          PL=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" $PL || true
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" $PL || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationLandscapeLeft" -c "Add :UISupportedInterfaceOrientations:1 string UIInterfaceOrientationLandscapeRight" $PL || true
+          /usr/libexec/PlistBuddy -c "Add :UIStatusBarHidden bool true" -c "Add :UIViewControllerBasedStatusBarAppearance bool false" -c "Add :UIRequiresFullScreen bool true" $PL || true
+          npx cap sync ios
+      - name: Build (khong ky)
+        run: |
+          if [ -d ios/App/App.xcworkspace ]; then TARGET="-workspace ios/App/App.xcworkspace"; else TARGET="-project ios/App/App.xcodeproj"; fi
+          xcodebuild $TARGET -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/App.xcarchive" archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM=""
+      - name: Dong goi IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/App.xcarchive/Products/Applications/App.app Payload/
+          zip -qry MINICRAFT-SURVIVAL.ipa Payload
+          ls -lh MINICRAFT-SURVIVAL.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MINICRAFT-SURVIVAL-ipa
+          path: MINICRAFT-SURVIVAL.ipa
