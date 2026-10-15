@@ -1,0 +1,6 @@
+{
+  "appId": "com.minicraft.survival",
+  "appName": "MINICRAFT SURVIVAL",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "backgroundColor": "#101418" }
+}

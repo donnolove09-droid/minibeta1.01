@@ -1,0 +1,12 @@
+{
+  "name": "minicraft-survival-ios",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/cli": "^6.1.0",
+    "three": "0.128.0",
+    "pako": "2.1.0"
+  }
+}
